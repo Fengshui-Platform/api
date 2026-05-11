@@ -13,10 +13,11 @@ const POLL_INTERVAL_MS = 3000
 const POLL_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes max polling per request
 
 interface Web2MTransaction {
-  id: string
+  transactionID: number
   description: string
   amount: number
   transactionDate: string
+  type: string
 }
 
 interface QrResponse {
@@ -53,44 +54,38 @@ export const PaymentService = {
   },
 
   async generateQr(amount: number, description: string): Promise<QrResponse> {
+    // URL format: {API_GET_QR}/{bankName}/{bankNumber}/{accountHolder}?amount=...&memo=...&is_mask=...&bg=...
+    // Response is a PNG image — use the URL directly as <img src>
     const params = new URLSearchParams({
-      bankName:       WEB2M_CONFIG.bankName,
-      bankNumber:     WEB2M_CONFIG.bankNumber,
-      bankUserName:   WEB2M_CONFIG.accountHolder,
-      isMask:         WEB2M_CONFIG.isMask,
-      bankBackground: WEB2M_CONFIG.bankBackground,
-      token:          WEB2M_CONFIG.bankToken,
-      amount:         String(amount),
-      des:            description,
+      amount:   String(amount),
+      memo:     description,
+      is_mask:  WEB2M_CONFIG.isMask,
+      bg:       WEB2M_CONFIG.bankBackground,
     })
 
-    const url = `${WEB2M_CONFIG.apiGetQr}?${params.toString()}`
-    const response = await axios.get<{ qrCode?: string; qrDataURL?: string; error?: string }>(url, {
-      timeout: 10000,
-    })
+    const qrUrl = [
+      WEB2M_CONFIG.apiGetQr,
+      WEB2M_CONFIG.bankName,
+      WEB2M_CONFIG.bankNumber,
+      encodeURIComponent(WEB2M_CONFIG.accountHolder),
+    ].join('/') + '?' + params.toString()
 
-    if (response.data.error) {
-      throw createError('QR_GEN_FAILED', `Không thể tạo mã QR: ${response.data.error}`, 502)
-    }
-
-    return {
-      qrUrl: response.data.qrCode ?? url,
-      qrDataURL: response.data.qrDataURL ?? '',
-    }
+    return { qrUrl, qrDataURL: '' }
   },
 
   async fetchTransactions(limit = 20): Promise<Web2MTransaction[]> {
-    const params = new URLSearchParams({
-      bankName:   WEB2M_CONFIG.bankName,
-      bankNumber: WEB2M_CONFIG.bankNumber,
-      token:      WEB2M_CONFIG.bankToken,
-      ...(WEB2M_CONFIG.bankPassword ? { password: WEB2M_CONFIG.bankPassword } : {}),
-      limit:      String(limit),
-    })
+    // URL format: {API_GET_TRANSACTION}/{password}/{bankNumber}/{token}
+    const urlTransaction = [
+      WEB2M_CONFIG.apiGetTransaction,
+      WEB2M_CONFIG.bankPassword,
+      WEB2M_CONFIG.bankNumber,
+      WEB2M_CONFIG.bankToken
+    ].join('/')
+
 
     try {
       const response = await axios.get<{ transactions?: Web2MTransaction[]; error?: string }>(
-        `${WEB2M_CONFIG.apiGetTransactionV2}?${params.toString()}`,
+        `${urlTransaction}`,
         { timeout: 10000 }
       )
       return response.data.transactions ?? []
@@ -121,12 +116,13 @@ export const PaymentService = {
     // Poll Web2M for matching transaction
     const transactions = await PaymentService.fetchTransactions(50)
     const match = transactions.find(tx =>
+      tx.type === 'IN' &&
       tx.description.includes(order.topup_code) &&
       tx.amount >= order.amount
     )
 
     if (match) {
-      await PaymentService.fulfillOrder(order, match.id)
+      await PaymentService.fulfillOrder(order, String(match.transactionID))
       const updated = await CreditOrderModel.findById(order.id)
       return { paid: true, order: updated! }
     }

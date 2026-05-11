@@ -5,7 +5,7 @@ import { success, createError } from '@/utils/response'
 export const AdminPackageController = {
   async list(_req: Request, res: Response, next: NextFunction) {
     try {
-      const packages = await CreditPackageModel.findAll()
+      const packages = await CreditPackageModel.findAll({ includeInactive: true })
       return res.json(success(packages))
     } catch (err) { next(err) }
   },
@@ -43,11 +43,20 @@ export const AdminPackageController = {
         price?: number
         validity_days?: number
         description?: string
-        is_active?: boolean
+        is_active?: number | boolean
         sort_order?: number
       }
 
-      await CreditPackageModel.update(id, { name, credits, price, validity_days, description, is_active, sort_order })
+      const updates: Parameters<typeof CreditPackageModel.update>[1] = {}
+      if (name !== undefined)          updates.name = name
+      if (credits !== undefined)       updates.credits = Number(credits)
+      if (price !== undefined)         updates.price = Number(price)
+      if (validity_days !== undefined) updates.validity_days = Number(validity_days)
+      if (description !== undefined)   updates.description = description
+      if (is_active !== undefined)     updates.is_active = Boolean(Number(is_active))
+      if (sort_order !== undefined)    updates.sort_order = Number(sort_order)
+
+      await CreditPackageModel.update(id, updates)
       const updated = await CreditPackageModel.findById(id)
       return res.json(success(updated, 'Cập nhật gói credits thành công'))
     } catch (err) { next(err) }

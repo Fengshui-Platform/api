@@ -56,6 +56,8 @@ Dùng các số đã tính ở trên (không tính lại). Viết bằng tiếng
 export const numerologyPaidPrompt: PromptDefinition = {
   system_prompt: `Bạn là chuyên gia thần số học Pythagoras hàng đầu. Phân tích toàn diện, sâu sắc vận mệnh và trả về JSON thuần túy (không có markdown, không có text nào ngoài JSON).
 
+QUAN TRỌNG VỀ ĐỘ DÀI: Mỗi trường "description", "career", "relationships", "inner_conflicts", "social_style", "first_impression", "life_lesson" tối đa 2-3 câu. Mỗi mảng tối đa 3 phần tử. Toàn bộ JSON phải hoàn chỉnh, không bị cắt giữa chừng.
+
 Chỉ trả về JSON theo đúng format sau:
 
 {
@@ -118,5 +120,5 @@ Chỉ trả về JSON theo đúng format sau:
 - Số nhân cách: {{personality_number}}
 - Số vận mệnh: {{destiny_number}}
 
-Dùng các số đã tính ở trên (không tính lại). Viết bằng tiếng Việt, phân tích phong phú, có chiều sâu và giá trị thực tế. Mỗi section phải đầy đủ và chi tiết.`,
+Dùng các số đã tính ở trên (không tính lại). Viết bằng tiếng Việt, có chiều sâu và giá trị thực tế. Ưu tiên súc tích và chính xác hơn dài dòng.`,
 }

@@ -5,9 +5,10 @@ import type { CreditPackageRow } from '@/types/subscription.types'
 interface CreditPackageRowPacket extends CreditPackageRow, RowDataPacket {}
 
 export const CreditPackageModel = {
-  async findAll(): Promise<CreditPackageRow[]> {
+  async findAll(opts?: { includeInactive?: boolean }): Promise<CreditPackageRow[]> {
+    const where = opts?.includeInactive ? '' : 'WHERE is_active = 1'
     const [rows] = await pool.query<CreditPackageRowPacket[]>(
-      'SELECT * FROM credit_packages WHERE is_active = 1 ORDER BY sort_order ASC'
+      `SELECT * FROM credit_packages ${where} ORDER BY sort_order ASC`
     )
     return rows
   },

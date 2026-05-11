@@ -7,12 +7,8 @@ export const AuthController = {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await AuthService.register(req.body)
-      const tokens = await AuthService.issueTokens(user, {
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-      })
-      AuthService.setTokenCookies(res, tokens)
-      return res.status(201).json(success(UserModel.toPublic(user), 'Đăng ký thành công'))
+      await AuthService.sendVerificationEmail(user)
+      return res.status(201).json(success(null, 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.'))
     } catch (err) { next(err) }
   },
 

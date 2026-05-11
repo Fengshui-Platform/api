@@ -5,6 +5,7 @@ import { FreeUsageLogModel } from '@/models/freeUsageLog.model'
 import { AiService } from '@/services/ai.service'
 import { getPrompt } from '@/prompts'
 import { createError } from '@/utils/response'
+import { logger } from '@/utils/logger'
 import type { ReadingModule, ReadingResult, ReadingInputDto } from '@/types/reading.types'
 
 // Simple Pythagorean numerology helpers
@@ -80,8 +81,9 @@ export const ReadingService = {
     try {
       parsedResult = AiService.parseJsonResponse<ReadingResult>(aiResult.content)
     } catch {
+      logger.warn(`[reading.service] parseJsonResponse failed for free ${module}, storing fallback`)
       parsedResult = {
-        summary: aiResult.content,
+        summary: 'Kết quả phân tích đang được xử lý. Vui lòng thử lại.',
         sections: {},
         ...numerology,
       }
@@ -117,12 +119,28 @@ export const ReadingService = {
 
     const numerology = computeNumerology(input.full_name, input.birth_date)
 
+    let partnerNumerology: Record<string, string> = {}
+    if (module === 'love' && input.partner_name && input.partner_birth_date) {
+      const pn = computeNumerology(input.partner_name, input.partner_birth_date)
+      partnerNumerology = {
+        partner_life_path:    String(pn.life_path_number),
+        partner_soul:         String(pn.soul_number),
+        partner_personality:  String(pn.personality_number),
+        partner_destiny:      String(pn.destiny_number),
+      }
+    }
+
     const userPrompt = AiService.buildPrompt(prompt.user_template, {
-      full_name: input.full_name,
-      birth_date: input.birth_date,
-      phone: input.phone ?? '',
-      gender: input.gender ?? '',
+      full_name:           input.full_name,
+      birth_date:          input.birth_date,
+      phone:               input.phone ?? '',
+      gender:              input.gender ?? '',
+      partner_name:        input.partner_name ?? '',
+      partner_birth_date:  input.partner_birth_date ?? '',
+      house_direction:     input.house_direction ?? '',
+      current_year:        String(new Date().getFullYear()),
       ...Object.fromEntries(Object.entries(numerology).map(([k, v]) => [k, String(v)])),
+      ...partnerNumerology,
     })
 
     const aiResult = await AiService.call(prompt.system_prompt, userPrompt)
@@ -131,7 +149,12 @@ export const ReadingService = {
     try {
       parsedResult = AiService.parseJsonResponse<ReadingResult>(aiResult.content)
     } catch {
-      parsedResult = { summary: aiResult.content, sections: {}, ...numerology }
+      logger.warn(`[reading.service] parseJsonResponse failed for paid ${module}, storing fallback`)
+      parsedResult = {
+        summary: 'Kết quả phân tích đang được xử lý. Vui lòng thử lại.',
+        sections: {},
+        ...numerology,
+      }
     }
 
     // Deduct credit and log — done in a sequence to ensure consistency

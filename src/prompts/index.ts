@@ -1,6 +1,11 @@
 import type { ReadingModule, PromptTier } from '@/types/reading.types'
 import { createError } from '@/utils/response'
 import { numerologyFreePrompt, numerologyPaidPrompt } from './numerology'
+import { lovePaidPrompt } from './love'
+import { financePaidPrompt } from './finance'
+import { simPaidPrompt } from './sim'
+import { fengshuiHomePaidPrompt } from './fengshui_home'
+import { horoscopePaidPrompt } from './horoscope'
 
 export interface PromptDefinition {
   system_prompt: string
@@ -14,6 +19,21 @@ const registry: Registry = {
   numerology: {
     free: numerologyFreePrompt,
     paid: numerologyPaidPrompt,
+  },
+  love: {
+    paid: lovePaidPrompt,
+  },
+  finance: {
+    paid: financePaidPrompt,
+  },
+  sim: {
+    paid: simPaidPrompt,
+  },
+  fengshui_home: {
+    paid: fengshuiHomePaidPrompt,
+  },
+  horoscope: {
+    paid: horoscopePaidPrompt,
   },
 }
 

@@ -7,6 +7,7 @@ import { RefreshTokenModel } from '@/models/refreshToken.model'
 import { EmailService } from '@/services/email.service'
 import { createError } from '@/utils/response'
 import { hashToken, randomToken } from '@/utils/crypto'
+import { logger } from '@/utils/logger'
 import type { UserRow } from '@/types/user.types'
 
 interface TokenPair {
@@ -49,6 +50,8 @@ export const AuthService = {
 
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) throw createError('INVALID_CREDENTIALS', 'Email hoặc mật khẩu không đúng', 401)
+
+    if (!user.is_verified) throw createError('EMAIL_NOT_VERIFIED', 'Vui lòng xác thực email trước khi đăng nhập', 403)
 
     await UserModel.updateLastLogin(user.id)
 
@@ -116,7 +119,13 @@ export const AuthService = {
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
     await UserModel.setEmailVerifyToken(user.id, token, expiresAt)
-    await EmailService.sendVerificationEmail(user.email!, token)
+    try {
+      await EmailService.sendVerificationEmail(user.email!, token)
+      logger.info('[AUTH] sendVerificationEmail sent to user %d', user.id)
+    } catch (err) {
+      // Token đã lưu DB — user có thể dùng nút "Gửi lại" trên trang login
+      logger.warn('[AUTH] sendVerificationEmail delivery failed for user %d — token stored, user can resend', user.id, { error: (err as Error).message })
+    }
   },
 
   async verifyEmail(token: string): Promise<void> {
@@ -137,7 +146,11 @@ export const AuthService = {
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
     await UserModel.setEmailVerifyToken(user.id, token, expiresAt)
-    await EmailService.sendVerificationEmail(email, token)
+    try {
+      await EmailService.sendVerificationEmail(email, token)
+    } catch (err) {
+      logger.warn('[AUTH] resendVerification delivery failed for %s — token stored', email, { error: (err as Error).message })
+    }
   },
 
   async forgotPassword(email: string): Promise<void> {
@@ -147,7 +160,11 @@ export const AuthService = {
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1h
     await UserModel.setResetPasswordToken(user.id, token, expiresAt)
-    await EmailService.sendPasswordResetEmail(email, token)
+    try {
+      await EmailService.sendPasswordResetEmail(email, token)
+    } catch (err) {
+      logger.warn('[AUTH] forgotPassword delivery failed for user %d — token stored, user can retry', user.id, { error: (err as Error).message })
+    }
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -166,24 +183,26 @@ export const AuthService = {
     res: import('express').Response,
     tokens: TokenPair
   ): void {
+    const isProd = process.env.NODE_ENV === 'production'
     res.cookie('access_token', tokens.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'strict',
       maxAge: JWT_CONFIG.accessMaxAge,
       path: '/',
     })
     res.cookie('refresh_token', tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'strict',
       maxAge: JWT_CONFIG.refreshMaxAge,
       path: '/api/v1/auth',
     })
   },
 
   clearTokenCookies(res: import('express').Response): void {
-    res.clearCookie('access_token', { path: '/' })
-    res.clearCookie('refresh_token', { path: '/api/v1/auth' })
+    const isProd = process.env.NODE_ENV === 'production'
+    res.clearCookie('access_token', { path: '/', sameSite: isProd ? 'none' : 'strict', secure: isProd })
+    res.clearCookie('refresh_token', { path: '/api/v1/auth', sameSite: isProd ? 'none' : 'strict', secure: isProd })
   },
 }

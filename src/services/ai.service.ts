@@ -89,6 +89,37 @@ async function callModel(model: AiModelRow, systemPrompt: string, userPrompt: st
   }
 }
 
+/**
+ * Close unclosed braces/brackets/strings in a truncated JSON string.
+ * Recovers valid (partial) data when AI hits max_tokens mid-response.
+ */
+function repairTruncatedJson(str: string): string {
+  const stack: ('{' | '[')[] = []
+  let inString = false
+  let escape = false
+
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i]
+    if (escape)                    { escape = false; continue }
+    if (ch === '\\' && inString)   { escape = true;  continue }
+    if (ch === '"')                { inString = !inString; continue }
+    if (inString)                  continue
+    if (ch === '{' || ch === '[')  stack.push(ch)
+    else if (ch === '}' || ch === ']') stack.pop()
+  }
+
+  let result = str.trimEnd()
+  // If we ended inside a string, close it
+  if (inString) result += '"'
+  // Remove trailing comma left by a truncated incomplete key-value pair
+  result = result.replace(/,\s*$/, '')
+  // Close unclosed structures in reverse stack order
+  for (let i = stack.length - 1; i >= 0; i--) {
+    result += stack[i] === '{' ? '}' : ']'
+  }
+  return result
+}
+
 export const AiService = {
   buildPrompt,
 
@@ -136,18 +167,27 @@ export const AiService = {
   },
 
   /**
-   * Parse JSON from AI response, handling markdown code fences.
+   * Parse JSON from AI response.
+   * Handles: markdown code fences, truncated responses (hit max_tokens), bare JSON.
    */
   parseJsonResponse<T = unknown>(content: string): T {
-    // Strip markdown code fences if present
-    const cleaned = content
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/, '')
-      .trim()
-    try {
-      return JSON.parse(cleaned) as T
-    } catch {
-      throw createError('AI_PARSE_ERROR', 'Không thể phân tích kết quả từ AI', 500)
+    // 1. Complete fence: ```json ... ```
+    const completeFence = content.match(/```(?:json)?\s*([\s\S]+?)```/)
+    if (completeFence) {
+      try { return JSON.parse(completeFence[1].trim()) as T } catch {}
     }
+
+    // 2. Open-ended fence (truncated at max_tokens): ```json ... <EOF>
+    const openFence = content.match(/```(?:json)?\s*([\s\S]+)$/)
+    const fromFence = openFence ? openFence[1].trim() : content.trim()
+
+    // 3. Try raw
+    try { return JSON.parse(fromFence) as T } catch {}
+
+    // 4. Try to repair truncated JSON
+    const repaired = repairTruncatedJson(fromFence)
+    try { return JSON.parse(repaired) as T } catch {}
+
+    throw createError('AI_PARSE_ERROR', 'Không thể phân tích kết quả từ AI', 500)
   },
 }

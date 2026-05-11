@@ -5,7 +5,7 @@ export const WEB2M_CONFIG = {
   isMask:          process.env.IS_MASK ?? '0',
   bankBackground:  process.env.BANK_BACKGROUND ?? '1',
   bankToken:       process.env.BANK_TOKEN ?? '',
-  bankPassword:    process.env.BANK_PASSWORD,
+  bankPassword:    process.env.BANK_PASSWORD ?? '',
   apiGetQr:        process.env.API_GET_QR ?? '',
   apiGetTransaction:    process.env.API_GET_TRANSACTION ?? '',
   apiGetTransactionV2:  process.env.API_GET_TRANSACTION_V2 ?? '',

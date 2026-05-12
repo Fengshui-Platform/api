@@ -46,8 +46,8 @@ export const UserModel = {
   },
 
   async update(id: number, data: Partial<Pick<UserRow,
-    'full_name' | 'email' | 'phone' | 'password_hash' | 'avatar_url' |
-    'avatar_public_id' | 'is_verified' | 'is_active' | 'role'
+    'full_name' | 'email' | 'phone' | 'birth_date' | 'gender' |
+    'password_hash' | 'avatar_url' | 'avatar_public_id' | 'is_verified' | 'is_active' | 'role'
   >>): Promise<void> {
     const fields = Object.keys(data) as (keyof typeof data)[]
     if (fields.length === 0) return
@@ -93,6 +93,8 @@ export const UserModel = {
       full_name: user.full_name,
       email: user.email,
       phone: user.phone,
+      birth_date: user.birth_date ? user.birth_date.toISOString().split('T')[0] : null,
+      gender: user.gender,
       avatar_url: user.avatar_url,
       role: user.role,
       credits_balance: user.credits_balance,
@@ -103,6 +105,20 @@ export const UserModel = {
       is_verified: user.is_verified,
       created_at: user.created_at.toISOString(),
     }
+  },
+
+  // Fills NULL birth_date / gender — requires migration 014
+  async saveBirthProfile(id: number, data: { birth_date?: string | null; gender?: string | null }): Promise<void> {
+    const { birth_date, gender } = data
+    if (!birth_date && !gender) return
+    await pool.query<ResultSetHeader>(
+      `UPDATE users
+       SET birth_date = COALESCE(birth_date, ?),
+           gender     = COALESCE(gender, ?),
+           updated_at = NOW()
+       WHERE id = ?`,
+      [birth_date ?? null, gender ?? null, id]
+    )
   },
 
   async setEmailVerifyToken(id: number, token: string, expiresAt: Date): Promise<void> {

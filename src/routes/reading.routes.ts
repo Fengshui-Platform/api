@@ -2,15 +2,14 @@ import { Router } from 'express'
 import { ReadingController } from '@/controllers/reading.controller'
 import { verifyToken, optionalToken } from '@/middleware/auth.middleware'
 import { requireCredits } from '@/middleware/checkCredits'
-import { freeReadingRateLimit, apiRateLimit } from '@/middleware/rateLimit'
+import { apiRateLimit } from '@/middleware/rateLimit'
 import { validate, readingInputSchema } from '@/middleware/validate'
 
 const router = Router()
 
-// Free reading (no auth, IP rate limited)
+// Free reading — rate limiting handled in service (DB-based, timezone-aware, session-first)
 router.post(
   '/free/:module',
-  freeReadingRateLimit,
   optionalToken,
   validate(readingInputSchema),
   ReadingController.freeReading

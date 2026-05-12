@@ -16,10 +16,14 @@ export const UserController = {
 
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const { full_name, phone } = req.body as { full_name?: string; phone?: string }
+      const { full_name, phone, birth_date, gender } = req.body as {
+        full_name?: string; phone?: string; birth_date?: string; gender?: string
+      }
       const updates: Parameters<typeof UserModel.update>[1] = {}
       if (full_name?.trim()) updates.full_name = full_name.trim()
       if (phone !== undefined) updates.phone = phone || null
+      if (birth_date !== undefined) updates.birth_date = birth_date ? new Date(birth_date) : null
+      if (gender !== undefined) updates.gender = gender || null
 
       if (Object.keys(updates).length > 0) {
         await UserModel.update(req.user!.id, updates)

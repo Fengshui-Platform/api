@@ -7,6 +7,9 @@ import routes from '@/routes'
 
 const app = express()
 
+// Trust one level of reverse proxy (Nginx/Cloudflare) to get real client IP via X-Forwarded-For
+app.set('trust proxy', 1)
+
 app.use(helmet())
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',

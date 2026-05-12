@@ -6,6 +6,8 @@ export interface UserRow {
   full_name: string
   email: string | null
   phone: string | null
+  birth_date: Date | null
+  gender: string | null
   password_hash: string | null
   avatar_url: string | null
   avatar_public_id: string | null
@@ -28,6 +30,8 @@ export interface UserPublic {
   full_name: string
   email: string | null
   phone: string | null
+  birth_date: string | null
+  gender: string | null
   avatar_url: string | null
   role: UserRole
   credits_balance: number

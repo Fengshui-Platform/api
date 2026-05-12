@@ -27,8 +27,9 @@ export const loginSchema: Schema = {
 }
 
 export const readingInputSchema: Schema = {
-  full_name: { notEmpty: { errorMessage: 'Vui lòng nhập họ tên' }, trim: true },
+  full_name:  { notEmpty: { errorMessage: 'Vui lòng nhập họ tên' }, trim: true },
   birth_date: { isDate: { errorMessage: 'Ngày sinh không hợp lệ (YYYY-MM-DD)' } },
+  for_other:  { optional: true, isBoolean: true, toBoolean: true },
 }
 
 export const createOrderSchema: Schema = {

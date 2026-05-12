@@ -58,9 +58,9 @@ export const ReadingService = {
     sessionId?: string,
     userId?: number
   ): Promise<{ readingId: number; result: ReadingResult }> {
-    const todayCount = await FreeUsageLogModel.countByIpToday(ip)
-    if (todayCount >= 3) {
-      throw createError('FREE_LIMIT', 'Bạn đã dùng hết 3 lượt miễn phí hôm nay', 429)
+    const alreadyUsed = await FreeUsageLogModel.hasUsedFreeToday(ip, sessionId)
+    if (alreadyUsed) {
+      throw createError('FREE_LIMIT', 'Bạn đã dùng lượt miễn phí hôm nay. Quay lại sau 0h hoặc mua lượt để xem thêm.', 429)
     }
 
     const prompt = getPrompt(module, 'free')

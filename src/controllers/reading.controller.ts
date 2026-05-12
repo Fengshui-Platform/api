@@ -1,9 +1,14 @@
+import crypto from 'crypto'
 import type { Request, Response, NextFunction } from 'express'
 import { ReadingService } from '@/services/reading.service'
 import { ReadingModel } from '@/models/reading.model'
+import { UserModel } from '@/models/user.model'
 import { success, paginated, createError } from '@/utils/response'
 import { parsePagination } from '@/types/api.types'
 import type { ReadingModule } from '@/types/reading.types'
+
+const SESSION_COOKIE = 'fsp_sid'
+const SESSION_MAX_AGE = 365 * 24 * 60 * 60 * 1000 // 1 year
 
 const VALID_MODULES: ReadingModule[] = ['numerology', 'love', 'finance', 'sim', 'fengshui_home', 'horoscope']
 
@@ -17,7 +22,18 @@ export const ReadingController = {
 
       const rawIp = req.ip ?? req.socket.remoteAddress ?? 'unknown'
       const ip = rawIp === '::1' ? '127.0.0.1' : rawIp.replace(/^::ffff:/, '')
-      const sessionId: string | undefined = req.cookies?.session_id
+
+      // Resolve or create a long-lived session cookie for this browser/device
+      let sessionId: string = req.cookies?.[SESSION_COOKIE]
+      if (!sessionId) {
+        sessionId = crypto.randomUUID()
+        res.cookie(SESSION_COOKIE, sessionId, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: SESSION_MAX_AGE,
+        })
+      }
 
       const { readingId, result } = await ReadingService.performFreeReading(
         req.body,
@@ -26,6 +42,24 @@ export const ReadingController = {
         sessionId,
         req.user?.id
       )
+
+      // Auto-save missing profile fields (only for own reading, never overwrite existing data)
+      if (req.user?.id && !req.body.for_other) {
+        const u = req.user
+        // phone: save via update() — column exists since day 1, always safe
+        if (!u.phone && req.body.phone) {
+          try { await UserModel.update(u.id, { phone: req.body.phone }) } catch { /* non-critical */ }
+        }
+        // birth_date / gender: save via saveBirthProfile — requires migration 014
+        if (!u.birth_date || !u.gender) {
+          try {
+            await UserModel.saveBirthProfile(u.id, {
+              birth_date: req.body.birth_date ?? null,
+              gender:     req.body.gender     ?? null,
+            })
+          } catch { /* non-critical */ }
+        }
+      }
 
       return res.json(success({ readingId, result }, 'Xem bói miễn phí thành công'))
     } catch (err) { next(err) }
@@ -43,6 +77,22 @@ export const ReadingController = {
         req.body,
         module as ReadingModule
       )
+
+      // Auto-save missing profile fields (only for own reading, never overwrite existing data)
+      if (!req.body.for_other) {
+        const u = req.user!
+        if (!u.phone && req.body.phone) {
+          try { await UserModel.update(u.id, { phone: req.body.phone }) } catch { /* non-critical */ }
+        }
+        if (!u.birth_date || !u.gender) {
+          try {
+            await UserModel.saveBirthProfile(u.id, {
+              birth_date: req.body.birth_date ?? null,
+              gender:     req.body.gender     ?? null,
+            })
+          } catch { /* non-critical */ }
+        }
+      }
 
       return res.json(success({ readingId, result }, 'Xem bói thành công'))
     } catch (err) { next(err) }

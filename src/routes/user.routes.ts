@@ -9,7 +9,7 @@ const router = Router()
 router.use(verifyToken)
 
 router.get('/profile', UserController.getProfile)
-router.patch('/profile', UserController.updateProfile)
+router.put('/profile', UserController.updateProfile)
 router.patch('/password', UserController.changePassword)
 router.post('/avatar', upload.single('avatar'), UserController.uploadAvatar)
 router.delete('/avatar', UserController.deleteAvatar)

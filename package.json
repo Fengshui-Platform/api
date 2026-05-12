@@ -35,7 +35,7 @@
     "winston": "^3.13.0"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.39.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
@@ -44,9 +44,7 @@
     "@types/multer": "^1.4.11",
     "@types/node": "^20.14.10",
     "@types/nodemailer": "^6.4.15",
-    "@typescript-eslint/eslint-plugin": "^7.16.0",
-    "@typescript-eslint/parser": "^7.16.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.4",
     "nodemon": "^3.1.4",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.16.2",

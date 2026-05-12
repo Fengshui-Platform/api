@@ -58,7 +58,8 @@ const umzug = new Umzug<Pool>({
   migrations: {
     glob: `${migrationsDir}/*.${ext}`,
     resolve: ({ name, path: migPath, context }) => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const migration = require(migPath!) as {
         up: (pool: Pool) => Promise<void>
         down: (pool: Pool) => Promise<void>

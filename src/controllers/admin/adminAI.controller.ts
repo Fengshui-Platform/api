@@ -58,7 +58,8 @@ export const AdminAIController = {
       }
 
       return res.json(success({ models }))
-    } catch (err) {
+    } catch (_err) {
+      console.error('Error fetching models:', _err)
       // Wrap provider API errors with a friendly message
       return next(createError('FETCH_MODELS_FAILED', 'Không thể lấy danh sách model — kiểm tra lại API key', 400))
     }

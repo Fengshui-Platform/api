@@ -4,7 +4,7 @@ import type { UserRow, UserPublic } from '@/types/user.types'
 import { getCreditsStatus } from '@/middleware/checkCredits'
 
 interface UserRowPacket extends UserRow, RowDataPacket {}
-interface TokenRow extends RowDataPacket { id: number; email: string | null }
+interface _TokenRow extends RowDataPacket { id: number; email: string | null }
 interface CountPacket extends RowDataPacket { total: number }
 
 export const UserModel = {

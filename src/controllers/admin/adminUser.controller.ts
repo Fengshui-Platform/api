@@ -88,6 +88,28 @@ export const AdminUserController = {
     } catch (err) { next(err) }
   },
 
+  async grantCredits(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id)
+      const user = await UserModel.findById(id)
+      if (!user) return next(createError('NOT_FOUND', 'Không tìm thấy người dùng', 404))
+
+      const { credits, days } = req.body as { credits?: number; days?: number; reason?: string }
+      if (!credits || !Number.isInteger(credits) || credits <= 0) {
+        return next(createError('INVALID_AMOUNT', 'credits phải là số nguyên dương', 422))
+      }
+
+      const validityDays = days ?? (Number(process.env.CREDIT_VALIDITY_DAYS) || 50)
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + validityDays)
+
+      await UserModel.addCredits(id, credits, expiresAt)
+
+      const updated = await UserModel.findById(id)
+      return res.json(success(UserModel.toPublic(updated!), `Đã cấp ${credits} lượt cho user #${id}`))
+    } catch (err) { next(err) }
+  },
+
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id)

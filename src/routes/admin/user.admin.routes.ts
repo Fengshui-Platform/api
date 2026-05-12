@@ -8,6 +8,7 @@ router.get('/:id', AdminUserController.getById)
 router.put('/:id', AdminUserController.update)
 router.delete('/:id', AdminUserController.delete)
 router.post('/:id/credits', AdminUserController.adjustCredits)
+router.post('/:id/grant-credits', AdminUserController.grantCredits)
 router.post('/:id/reset-password', AdminUserController.resetPassword)
 
 export default router

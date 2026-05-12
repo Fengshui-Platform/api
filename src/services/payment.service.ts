@@ -73,7 +73,7 @@ export const PaymentService = {
     return { qrUrl, qrDataURL: '' }
   },
 
-  async fetchTransactions(limit = 20): Promise<Web2MTransaction[]> {
+  async fetchTransactions(_limit = 20): Promise<Web2MTransaction[]> {
     // URL format: {API_GET_TRANSACTION}/{password}/{bankNumber}/{token}
     const urlTransaction = [
       WEB2M_CONFIG.apiGetTransaction,

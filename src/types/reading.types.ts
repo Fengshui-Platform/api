@@ -1,4 +1,4 @@
-export type ReadingModule = 'numerology' | 'love' | 'finance' | 'sim' | 'fengshui_home' | 'horoscope'
+export type ReadingModule = 'numerology' | 'love' | 'finance' | 'sim' | 'fengshui_home' | 'horoscope' | 'zodiac'
 export type PromptTier = 'free' | 'paid'
 
 export interface ReadingRow {

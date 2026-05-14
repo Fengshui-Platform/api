@@ -10,7 +10,7 @@ import type { ReadingModule } from '@/types/reading.types'
 const SESSION_COOKIE = 'fsp_sid'
 const SESSION_MAX_AGE = 365 * 24 * 60 * 60 * 1000 // 1 year
 
-const VALID_MODULES: ReadingModule[] = ['numerology', 'love', 'finance', 'sim', 'fengshui_home', 'horoscope']
+const VALID_MODULES: ReadingModule[] = ['numerology', 'love', 'finance', 'sim', 'fengshui_home', 'horoscope', 'zodiac']
 
 export const ReadingController = {
   async freeReading(req: Request, res: Response, next: NextFunction) {

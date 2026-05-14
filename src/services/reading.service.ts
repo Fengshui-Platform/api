@@ -33,6 +33,53 @@ function letterValue(ch: string): number {
 
 const VOWELS = new Set(['a', 'e', 'i', 'o', 'u'])
 
+interface WesternZodiacData {
+  sign: string
+  signVi: string
+  element: string
+  elementVi: string
+  modality: string
+}
+
+const WESTERN_ZODIAC: Array<{
+  sign: string; signVi: string; element: string; elementVi: string; modality: string
+  from: [number, number]; to: [number, number]
+}> = [
+  { sign: 'Aries',       signVi: 'Bạch Dương',  element: 'Fire',  elementVi: 'Lửa',  modality: 'Cardinal', from: [3,21], to: [4,19] },
+  { sign: 'Taurus',      signVi: 'Kim Ngưu',    element: 'Earth', elementVi: 'Đất',  modality: 'Fixed',    from: [4,20], to: [5,20] },
+  { sign: 'Gemini',      signVi: 'Song Tử',     element: 'Air',   elementVi: 'Khí',  modality: 'Mutable',  from: [5,21], to: [6,20] },
+  { sign: 'Cancer',      signVi: 'Cự Giải',     element: 'Water', elementVi: 'Nước', modality: 'Cardinal', from: [6,21], to: [7,22] },
+  { sign: 'Leo',         signVi: 'Sư Tử',       element: 'Fire',  elementVi: 'Lửa',  modality: 'Fixed',    from: [7,23], to: [8,22] },
+  { sign: 'Virgo',       signVi: 'Xử Nữ',       element: 'Earth', elementVi: 'Đất',  modality: 'Mutable',  from: [8,23], to: [9,22] },
+  { sign: 'Libra',       signVi: 'Thiên Bình',  element: 'Air',   elementVi: 'Khí',  modality: 'Cardinal', from: [9,23], to: [10,22] },
+  { sign: 'Scorpio',     signVi: 'Bọ Cạp',      element: 'Water', elementVi: 'Nước', modality: 'Fixed',    from: [10,23], to: [11,21] },
+  { sign: 'Sagittarius', signVi: 'Nhân Mã',     element: 'Fire',  elementVi: 'Lửa',  modality: 'Mutable',  from: [11,22], to: [12,21] },
+  { sign: 'Capricorn',   signVi: 'Ma Kết',      element: 'Earth', elementVi: 'Đất',  modality: 'Cardinal', from: [12,22], to: [1,19] },
+  { sign: 'Aquarius',    signVi: 'Bảo Bình',    element: 'Air',   elementVi: 'Khí',  modality: 'Fixed',    from: [1,20], to: [2,18] },
+  { sign: 'Pisces',      signVi: 'Song Ngư',    element: 'Water', elementVi: 'Nước', modality: 'Mutable',  from: [2,19], to: [3,20] },
+]
+
+function getWesternZodiac(birthDate: string): WesternZodiacData {
+  const parts = birthDate.split('-').map(Number)
+  const month = parts[1] ?? 1
+  const day   = parts[2] ?? 1
+  const md = month * 100 + day
+
+  for (const z of WESTERN_ZODIAC) {
+    const from = z.from[0] * 100 + z.from[1]
+    const to   = z.to[0]   * 100 + z.to[1]
+
+    if (from <= to) {
+      if (md >= from && md <= to) return z
+    } else {
+      // Capricorn spans Dec 22 → Jan 19 (crosses year boundary)
+      if (md >= from || md <= to) return z
+    }
+  }
+  // Fallback: Pisces (should never happen with valid date)
+  return WESTERN_ZODIAC[11]!
+}
+
 export function computeNumerology(fullName: string, birthDate: string) {
   const [year, month, day] = birthDate.split('-').map(Number)
   const lifePathNumber = sumDigits((year ?? 0) + (month ?? 0) + (day ?? 0))
@@ -130,6 +177,18 @@ export const ReadingService = {
       }
     }
 
+    let zodiacVars: Record<string, string> = {}
+    if (module === 'zodiac') {
+      const z = getWesternZodiac(input.birth_date)
+      zodiacVars = {
+        zodiac_sign:       z.sign,
+        zodiac_sign_vi:    z.signVi,
+        zodiac_element:    z.element,
+        zodiac_element_vi: z.elementVi,
+        zodiac_modality:   z.modality,
+      }
+    }
+
     const userPrompt = AiService.buildPrompt(prompt.user_template, {
       full_name:           input.full_name,
       birth_date:          input.birth_date,
@@ -141,6 +200,7 @@ export const ReadingService = {
       current_year:        String(new Date().getFullYear()),
       ...Object.fromEntries(Object.entries(numerology).map(([k, v]) => [k, String(v)])),
       ...partnerNumerology,
+      ...zodiacVars,
     })
 
     const aiResult = await AiService.call(prompt.system_prompt, userPrompt)

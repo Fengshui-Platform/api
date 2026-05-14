@@ -24,7 +24,7 @@ interface AdminReadingRow extends RowDataPacket {
 
 interface CountRow extends RowDataPacket { total: number }
 
-const VALID_MODULES: ReadingModule[] = ['numerology', 'love', 'finance', 'sim', 'fengshui_home', 'horoscope']
+const VALID_MODULES: ReadingModule[] = ['numerology', 'love', 'finance', 'sim', 'fengshui_home', 'horoscope', 'zodiac']
 
 export const AdminReadingController = {
   async list(req: Request, res: Response, next: NextFunction) {

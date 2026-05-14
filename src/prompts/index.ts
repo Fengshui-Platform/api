@@ -6,6 +6,7 @@ import { financePaidPrompt } from './finance'
 import { simPaidPrompt } from './sim'
 import { fengshuiHomePaidPrompt } from './fengshui_home'
 import { horoscopePaidPrompt } from './horoscope'
+import { zodiacPaidPrompt } from './zodiac'
 
 export interface PromptDefinition {
   system_prompt: string
@@ -34,6 +35,9 @@ const registry: Registry = {
   },
   horoscope: {
     paid: horoscopePaidPrompt,
+  },
+  zodiac: {
+    paid: zodiacPaidPrompt,
   },
 }
 

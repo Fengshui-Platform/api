@@ -217,9 +217,11 @@ export const ReadingService = {
       }
     }
 
-    // Deduct credit and log — done in a sequence to ensure consistency
-    await UserModel.deductCredit(userId)
-    const updatedUser = await UserModel.findById(userId)
+    // ── [PAID_FEATURE_DISABLED] Credit deduction & usage log ──────────────────
+    // Uncomment the block below to re-enable credit deduction and logging.
+    // await UserModel.deductCredit(userId)
+    // const updatedUser = await UserModel.findById(userId)
+    // ──────────────────────────────────────────────────────────────────────────
 
     const readingId = await ReadingModel.create({
       user_id: userId,
@@ -230,17 +232,19 @@ export const ReadingService = {
       result_data: JSON.stringify(parsedResult),
       ai_model_id: aiResult.modelId,
       tokens_used: aiResult.tokensUsed,
-      is_free: false,
-      credits_used: 1,
+      is_free: true,      // [PAID_FEATURE_DISABLED] change back to false when re-enabling
+      credits_used: 0,    // [PAID_FEATURE_DISABLED] change back to 1 when re-enabling
     })
 
-    await CreditUsageLogModel.create({
-      userId,
-      readingId,
-      module,
-      creditsUsed: 1,
-      balanceAfter: updatedUser?.credits_balance ?? 0,
-    })
+    // ── [PAID_FEATURE_DISABLED] CreditUsageLog ─────────────────────────────────
+    // await CreditUsageLogModel.create({
+    //   userId,
+    //   readingId,
+    //   module,
+    //   creditsUsed: 1,
+    //   balanceAfter: updatedUser?.credits_balance ?? 0,
+    // })
+    // ──────────────────────────────────────────────────────────────────────────
 
     return { readingId, result: parsedResult }
   },

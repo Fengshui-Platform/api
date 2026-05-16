@@ -15,12 +15,13 @@ router.post(
   ReadingController.freeReading
 )
 
-// Paid reading (auth + credits required)
+// Paid reading (auth required; credits check disabled — [PAID_FEATURE_DISABLED])
+// To re-enable credit gating, add `requireCredits` back between verifyToken and validate.
 router.post(
   '/paid/:module',
   apiRateLimit,
   verifyToken,
-  requireCredits,
+  // requireCredits,  // [PAID_FEATURE_DISABLED] uncomment to re-enable credit check
   validate(readingInputSchema),
   ReadingController.paidReading
 )

@@ -209,4 +209,72 @@ export const AdminTrafficController = {
       return res.json(success(rows))
     } catch (err) { next(err) }
   },
+
+  async online(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const [[totals]] = await pool.query<(RowDataPacket & { total: number; logged_in: number; anonymous: number })[]>(
+        `SELECT
+           COUNT(*) AS total,
+           COUNT(CASE WHEN user_id IS NOT NULL THEN 1 END) AS logged_in,
+           COUNT(CASE WHEN user_id IS NULL     THEN 1 END) AS anonymous
+         FROM online_heartbeats
+         WHERE last_seen >= NOW() - INTERVAL 3 MINUTE`
+      )
+
+      const [pages] = await pool.query<(RowDataPacket & { page: string | null; cnt: number })[]>(
+        `SELECT page, COUNT(*) AS cnt
+         FROM online_heartbeats
+         WHERE last_seen >= NOW() - INTERVAL 3 MINUTE
+         GROUP BY page
+         ORDER BY cnt DESC
+         LIMIT 10`
+      )
+
+      return res.json(success({
+        total:      totals?.total      ?? 0,
+        logged_in:  totals?.logged_in  ?? 0,
+        anonymous:  totals?.anonymous  ?? 0,
+        pages:      pages.map(p => ({ page: p.page ?? '(không rõ)', cnt: p.cnt })),
+        updated_at: new Date().toISOString(),
+      }))
+    } catch (err) { next(err) }
+  },
+
+  async hourly(req: Request, res: Response, next: NextFunction) {
+    try {
+      const mode = req.query.mode === 'avg' ? 'avg' : 'today'
+      const days = Math.min(90, Math.max(7, Number(req.query.days) || 30))
+
+      // Fill all 24 hours so chart always shows 0h-23h
+      const ALL_HOURS = Array.from({ length: 24 }, (_, i) => i)
+
+      if (mode === 'today') {
+        const [rows] = await pool.query<(RowDataPacket & { hour: number; sessions: number })[]>(
+          `SELECT HOUR(created_at) AS hour, COUNT(DISTINCT session_id) AS sessions
+           FROM page_view_logs
+           WHERE DATE(created_at) = CURDATE()
+           GROUP BY HOUR(created_at)
+           ORDER BY hour ASC`
+        )
+        const map = new Map(rows.map(r => [r.hour, r.sessions]))
+        const data = ALL_HOURS.map(h => ({ hour: h, sessions: map.get(h) ?? 0 }))
+        return res.json(success({ mode: 'today', data }))
+      }
+
+      // avg mode
+      const [rows] = await pool.query<(RowDataPacket & { hour: number; avg_sessions: number })[]>(
+        `SELECT
+           HOUR(created_at) AS hour,
+           ROUND(COUNT(DISTINCT session_id) / NULLIF(COUNT(DISTINCT DATE(created_at)), 0), 1) AS avg_sessions
+         FROM page_view_logs
+         WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+         GROUP BY HOUR(created_at)
+         ORDER BY hour ASC`,
+        [days]
+      )
+      const map = new Map(rows.map(r => [r.hour, Number(r.avg_sessions)]))
+      const data = ALL_HOURS.map(h => ({ hour: h, avg_sessions: map.get(h) ?? 0 }))
+      return res.json(success({ mode: 'avg', days, data }))
+    } catch (err) { next(err) }
+  },
 }

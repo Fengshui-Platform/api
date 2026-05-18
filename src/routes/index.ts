@@ -5,6 +5,7 @@ import userRoutes from './user.routes'
 import creditRoutes from './credit.routes'
 import adminRoutes from './admin'
 import { TrackController } from '@/controllers/track.controller'
+import { HeartbeatController } from '@/controllers/heartbeat.controller'
 import { optionalToken } from '@/middleware/auth.middleware'
 import { trackRateLimit } from '@/middleware/rateLimit'
 
@@ -15,6 +16,7 @@ router.use('/readings', readingRoutes)
 router.use('/users', userRoutes)
 router.use('/credits', creditRoutes)
 router.use('/admin', adminRoutes)
-router.post('/track', trackRateLimit, optionalToken, TrackController.track)
+router.post('/track',     trackRateLimit, optionalToken, TrackController.track)
+router.post('/heartbeat', trackRateLimit, optionalToken, HeartbeatController.ping)
 
 export default router

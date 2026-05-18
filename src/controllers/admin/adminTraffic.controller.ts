@@ -231,11 +231,10 @@ export const AdminTrafficController = {
       )
 
       return res.json(success({
-        total:      totals?.total      ?? 0,
-        logged_in:  totals?.logged_in  ?? 0,
-        anonymous:  totals?.anonymous  ?? 0,
-        pages:      pages.map(p => ({ page: p.page ?? '(không rõ)', cnt: p.cnt })),
-        updated_at: new Date().toISOString(),
+        total:     totals?.total     ?? 0,
+        logged_in: totals?.logged_in ?? 0,
+        anonymous: totals?.anonymous ?? 0,
+        pages:     pages.map(p => ({ page: p.page ?? '(không rõ)', cnt: p.cnt })),
       }))
     } catch (err) { next(err) }
   },
@@ -244,17 +243,21 @@ export const AdminTrafficController = {
     try {
       const mode = req.query.mode === 'avg' ? 'avg' : 'today'
       const days = Math.min(90, Math.max(7, Number(req.query.days) || 30))
+      const TZ = '+07:00'
 
       // Fill all 24 hours so chart always shows 0h-23h
       const ALL_HOURS = Array.from({ length: 24 }, (_, i) => i)
 
       if (mode === 'today') {
         const [rows] = await pool.query<(RowDataPacket & { hour: number; sessions: number })[]>(
-          `SELECT HOUR(created_at) AS hour, COUNT(DISTINCT session_id) AS sessions
+          `SELECT
+             HOUR(CONVERT_TZ(created_at, '+00:00', ?)) AS hour,
+             COUNT(DISTINCT session_id) AS sessions
            FROM page_view_logs
-           WHERE DATE(created_at) = CURDATE()
-           GROUP BY HOUR(created_at)
-           ORDER BY hour ASC`
+           WHERE DATE(CONVERT_TZ(created_at, '+00:00', ?)) = DATE(CONVERT_TZ(NOW(), '+00:00', ?))
+           GROUP BY hour
+           ORDER BY hour ASC`,
+          [TZ, TZ, TZ]
         )
         const map = new Map(rows.map(r => [r.hour, r.sessions]))
         const data = ALL_HOURS.map(h => ({ hour: h, sessions: map.get(h) ?? 0 }))
@@ -264,13 +267,16 @@ export const AdminTrafficController = {
       // avg mode
       const [rows] = await pool.query<(RowDataPacket & { hour: number; avg_sessions: number })[]>(
         `SELECT
-           HOUR(created_at) AS hour,
-           ROUND(COUNT(DISTINCT session_id) / NULLIF(COUNT(DISTINCT DATE(created_at)), 0), 1) AS avg_sessions
+           HOUR(CONVERT_TZ(created_at, '+00:00', ?)) AS hour,
+           ROUND(
+             COUNT(DISTINCT session_id) /
+             NULLIF(COUNT(DISTINCT DATE(CONVERT_TZ(created_at, '+00:00', ?))), 0),
+           1) AS avg_sessions
          FROM page_view_logs
          WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-         GROUP BY HOUR(created_at)
+         GROUP BY hour
          ORDER BY hour ASC`,
-        [days]
+        [TZ, TZ, days]
       )
       const map = new Map(rows.map(r => [r.hour, Number(r.avg_sessions)]))
       const data = ALL_HOURS.map(h => ({ hour: h, avg_sessions: map.get(h) ?? 0 }))

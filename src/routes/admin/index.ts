@@ -7,6 +7,7 @@ import orderAdminRoutes from './order.admin.routes'
 import settingAdminRoutes from './setting.admin.routes'
 import statsAdminRoutes from './stats.admin.routes'
 import readingAdminRoutes from './reading.admin.routes'
+import trafficAdminRoutes from './traffic.admin.routes'
 
 const router = Router()
 
@@ -20,5 +21,6 @@ router.use('/credit-orders', orderAdminRoutes)
 router.use('/settings', settingAdminRoutes)
 router.use('/stats', statsAdminRoutes)
 router.use('/readings', readingAdminRoutes)
+router.use('/traffic', trafficAdminRoutes)
 
 export default router

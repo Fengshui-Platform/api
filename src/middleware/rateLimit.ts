@@ -22,3 +22,12 @@ export const freeReadingRateLimit = rateLimit({
   keyGenerator: (req) => req.ip ?? 'unknown',
   message: { success: false, error: { code: 'FREE_LIMIT', message: 'Bạn đã dùng hết lượt miễn phí hôm nay' } },
 })
+
+export const trackRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  keyGenerator: (req) => req.ip ?? 'unknown',
+  message: { success: false, error: { code: 'RATE_LIMIT', message: 'Quá nhiều yêu cầu' } },
+  standardHeaders: true,
+  legacyHeaders: false,
+})

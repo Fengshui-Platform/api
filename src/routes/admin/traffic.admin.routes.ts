@@ -9,5 +9,7 @@ router.get('/pages',     AdminTrafficController.pages)
 router.get('/features',  AdminTrafficController.features)
 router.get('/funnel',    AdminTrafficController.funnel)
 router.get('/retention', AdminTrafficController.retention)
+router.get('/online',    AdminTrafficController.online)
+router.get('/hourly',    AdminTrafficController.hourly)
 
 export default router
